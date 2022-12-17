@@ -1,0 +1,108 @@
+<?php
+class ProductGateway
+{
+    private PDO $conn;
+
+    public function __construct(Database $database)
+    {
+        $this->conn = $database->getConnection();    
+    }
+
+    public function getAll(): array
+    {
+        $sql = "SELECT * FROM artist_data";
+
+        $stmt = $this->conn->query($sql);
+
+        $data = [];
+
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC))
+        {
+            //For Bool values add here this block: $row["specific_column"] = (bool) $row["specific_column"];
+            $row["created"] = date("Y-m-d H:i:s",strtotime($row["created"]));
+            $row["modified"] = date("Y-m-d H:i:s",strtotime($row["modified"]));
+            $data[] = $row;
+        }
+
+        return $data;
+    }
+
+    public function create(array $data): string
+    {
+        $sql = "INSERT INTO users (username, password, created, high_score) VALUES (:username, :password, :created, :high_score)";
+        $stmt = $this->conn->prepare($sql);
+
+        $stmt->bindValue(":username", $data["username"], PDO::PARAM_STR);
+        $stmt->bindValue(":password", $data["password"], PDO::PARAM_STR);
+        $stmt->bindValue(":created", date("Y-m-d H:i:s",strtotime($data["created"])), PDO::PARAM_STR);
+        $stmt->bindValue(":high_score", $data["high_score"], PDO::PARAM_INT);
+
+        $stmt->execute();
+
+        return $this->conn->lastInsertId();
+    }
+
+    public function get(string $id, string $endpoint): array | false
+    {
+
+        $sql = "SELECT * FROM :db WHERE id = :id";
+        
+        $stmt = $this->conn->prepare($sql);
+
+        $stmt->bindValue(":id", $id, PDO::PARAM_INT);
+
+        switch($endpoint) {
+            case "users":
+                $stmt->bindValue(":db", "users", PDO::PARAM_INT);
+            case "artists":
+                $stmt->bindValue(":db", "artist_data", PDO::PARAM_INT);
+        }
+
+        $stmt->execute();
+
+        $data = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($data !== false) {
+            $data["created"] = date("Y-m-d H:i:s",strtotime($data["created"]));
+            $data["modified"] = date("Y-m-d H:i:s",strtotime($data["modified"]));
+        }
+
+        return $data;
+    }
+
+    public function update(array $current, array $new): int
+    {
+        $sql = "UPDATE :db SET spotify_id=:spotify_id, name=:name, img_link=:img_link, genre1=:genre1, genre2=:genre2, pop_score=:pop:score, followers=:followers, modified=:modified WHERE id = :id";
+
+        $stmt = $this->conn->prepare($sql);
+
+        $stmt->bindValue(":spotify_id", $new["spotify_id"] ?? $current["spotify_id"], PDO::PARAM_STR);
+        $stmt->bindValue(":name", $new["name"] ?? $current["name"], PDO::PARAM_STR);
+        $stmt->bindValue(":img_link", $new["img_link"] ?? $current["img_link"], PDO::PARAM_STR);
+        $stmt->bindValue(":genre1", $new["genre1"] ?? $current["genre1"], PDO::PARAM_STR);
+        $stmt->bindValue(":genre2", $new["genre2"] ?? $current["genre2"], PDO::PARAM_STR);
+        $stmt->bindValue(":pop_score", $new["pop_score"] ?? $current["pop_score"], PDO::PARAM_STR);
+        $stmt->bindValue(":followers", $new["followers"] ?? $current["followers"], PDO::PARAM_STR);
+        $stmt->bindValue(":modified", $new["modified"] ?? $current["modified"], PDO::PARAM_STR);
+        
+        $stmt->bindValue(":id", $current["id"], PDO::PARAM_INT);
+        
+        $stmt->execute();
+
+        return $stmt->rowCount();
+    }
+
+    public function delete(string $id): int
+    {
+        $sql = "DELETE FROM artist_data WHERE id = :id";
+
+        $stmt = $this->conn->prepare($sql);
+
+        $stmt->bindValue(":id", $id, PDO::PARAM_INT);
+
+        $stmt->execute();
+
+        return $stmt->rowCount();
+    }
+}
+?>
