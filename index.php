@@ -13,14 +13,9 @@ header("Content-Type: application/json; charset=UTF-8");
 
 $parts = explode("/", $_SERVER["REQUEST_URI"]);
 
-if ($parts[2] != "api") {
-    http_response_code(404);
-    exit;
-}
+$endpoint = $parts[1];
 
-$endpoint = $parts[3];
-
-$id = $parts[4] ?? null;
+$id = $parts[2] ?? null;
 
 $database = new Database($configs["host"], $configs["database"], $configs["username"], $configs["password"]);
 
